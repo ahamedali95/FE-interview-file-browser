@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useMemo, FunctionComponent, useReducer} from "react";
+import React, {useState, useEffect, useMemo, FunctionComponent, useReducer, useCallback} from "react";
 import dayjs from "dayjs";
 
 // I believe material-ui supports tree shaking as it uses ES6 to construct its modules
@@ -91,7 +91,7 @@ const reducer = (state: WhereInput, action: Action) => {
 const DataGrid: FunctionComponent = () => {
   const classes = useStyles();
   const bytesPerKB = 1_000;
-  const [ state, dispatch ] = useReducer(reducer, initialState, undefined);   //@ts-ignore
+  const [ state, dispatch ] = useReducer(reducer, initialState, undefined);
   const [page, setPage] = useState(1);
   const [currentPath, setCurrentPath] = useState("/");
   const [history, updateHistory] = useState<{ id: string, path: string }[]>(
@@ -113,22 +113,24 @@ const DataGrid: FunctionComponent = () => {
   // to trigger the filtering task.
   const [ fetchEntries, { data, loading, error } ] = useListEntriesLazyQuery({});
 
-  const getPayload = (): Record<"variables", ListEntriesQueryVariables> => {
+  const getPayload = useMemo((): Record<"variables", ListEntriesQueryVariables> => {
     return {
       variables: {
         path: currentPath,
         page,
         where: {
+          ...state,
           size_gt: Number(state.size_gt) * bytesPerKB,
-          size_lt: Number(state.size_lt) * bytesPerKB,
-          ...state
+          size_lt: Number(state.size_lt) * bytesPerKB
         }
       }
     };
-  };
+  }, [ currentPath, page, state ]);
 
   useEffect((): void => {
-    fetchEntries(getPayload());
+    // When we switch between current path/pages, the previous filters get automatically applied
+    // to our query.
+    fetchEntries(getPayload);
   }, [ currentPath, page ]);
 
   useEffect((): void => {
@@ -168,17 +170,17 @@ const DataGrid: FunctionComponent = () => {
     setPage(newPage + 1);
   };
 
-  const handleFilterClick = (): void => {
-    fetchEntries(getPayload());
-  };
+  const handleFilterClick = useCallback((): void => {
+    fetchEntries(getPayload);
+  }, [ currentPath, page, state ]);
 
-  const handleChange = (property: keyof WhereInput, value: any): void => {
+  const handleChange = useCallback((property: keyof WhereInput, value: any): void => {
     dispatch({ type: 'UPDATE_PROPERTY', property, value });
-  };
+  }, [ dispatch ]);
 
-  const handleClearFilterClick = () => {
+  const handleClearFilterClick = useCallback((): void => {
     dispatch({ type: 'RESET' });
-  };
+  }, [ dispatch ]);
 
   const getData = (): JSX.Element | JSX.Element[] => {
     if (loading) {
