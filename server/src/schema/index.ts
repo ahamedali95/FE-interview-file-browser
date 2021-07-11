@@ -10,6 +10,7 @@ export const typeDefs = gql`
     size_lt: Int
     name_contains: String
     type_eq: String
+    modified_after: String
   }
 
   type Pagination {

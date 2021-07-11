@@ -2,7 +2,9 @@ import gql from 'graphql-tag';
 import * as ApolloReactCommon from '@apollo/client';
 import * as ApolloReactHooks from '@apollo/client';
 export type Maybe<T> = T | null;
-export type Exact<T extends { [key: string]: any }> = { [K in keyof T]: T[K] };
+export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
+export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
   ID: string;
@@ -10,6 +12,39 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+};
+
+export type Directory = {
+  __typename?: 'Directory';
+  id: Scalars['String'];
+  path: Scalars['String'];
+  name: Scalars['String'];
+};
+
+export type Entry = File | Directory;
+
+export type File = {
+  __typename?: 'File';
+  id: Scalars['String'];
+  path: Scalars['String'];
+  name: Scalars['String'];
+  size: Scalars['Int'];
+  lastModified: Scalars['String'];
+};
+
+export type ListEntriesResult = {
+  __typename?: 'ListEntriesResult';
+  pagination: Pagination;
+  entries: Array<Maybe<Entry>>;
+};
+
+export type Pagination = {
+  __typename?: 'Pagination';
+  page: Scalars['Int'];
+  pageCount: Scalars['Int'];
+  prevPage?: Maybe<Scalars['Int']>;
+  nextPage?: Maybe<Scalars['Int']>;
+  totalRows?: Maybe<Scalars['Int']>;
 };
 
 export type Query = {
@@ -29,40 +64,8 @@ export type WhereInput = {
   size_lt?: Maybe<Scalars['Int']>;
   name_contains?: Maybe<Scalars['String']>;
   type_eq?: Maybe<Scalars['String']>;
+  modified_after?: Maybe<Scalars['String']>;
 };
-
-export type Pagination = {
-  __typename?: 'Pagination';
-  page: Scalars['Int'];
-  pageCount: Scalars['Int'];
-  prevPage?: Maybe<Scalars['Int']>;
-  nextPage?: Maybe<Scalars['Int']>;
-  totalRows?: Maybe<Scalars['Int']>;
-};
-
-export type ListEntriesResult = {
-  __typename?: 'ListEntriesResult';
-  pagination: Pagination;
-  entries: Array<Maybe<Entry>>;
-};
-
-export type File = {
-  __typename?: 'File';
-  id: Scalars['String'];
-  path: Scalars['String'];
-  name: Scalars['String'];
-  size: Scalars['Int'];
-  lastModified: Scalars['String'];
-};
-
-export type Directory = {
-  __typename?: 'Directory';
-  id: Scalars['String'];
-  path: Scalars['String'];
-  name: Scalars['String'];
-};
-
-export type Entry = File | Directory;
 
 export type ListEntriesQueryVariables = Exact<{
   path: Scalars['String'];

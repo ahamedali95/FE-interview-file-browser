@@ -5,6 +5,7 @@ import map from 'lodash/map'
 import { typeDefs } from './schema';
 import { Entry, Resolvers, File, Directory, Pagination, WhereInput, Maybe } from './generated/schema';
 import { Entry as FileSystemEntry, File as FileSystemFile, Directory as FileSystemDirectory, lookupPath } from './db';
+import {debugLog} from "@graphql-codegen/cli/utils/debugging";
 
 const mapFileOutput = (file: FileSystemFile, pathSegments: string[]): File => {
   const path = [...pathSegments, file.name].join('/')
@@ -38,7 +39,8 @@ const filterEntries = (entries: any[], where?: Maybe<WhereInput>): any[] => {
   if (where) {
     return compact(
       map(entries, (entry) => {
-        let tmpEntry: FileSystemEntry | undefined = lookupPath(entry.path.split('/'))
+        let tmpEntry: FileSystemEntry | undefined = lookupPath(entry.path.split('/'));
+        // console.log(tmpEntry?.size)
         const lt = where.size_lt ?? 0
         const gt = where.size_gt ?? 0
 
@@ -51,6 +53,14 @@ const filterEntries = (entries: any[], where?: Maybe<WhereInput>): any[] => {
         // Size
         if (tmpEntry?.isFile) {
           if (where.size_lt && where.size_gt) {
+            console.log("gt", gt)
+            console.log("lt", lt)
+            console.log(tmpEntry.size)
+            console.log(tmpEntry.size < gt && tmpEntry.size > lt)
+
+            // size = 1;
+            // gt = 3 file size has to be less than this
+            // lt = 0 file size has to be greater than this
             if (tmpEntry.size < gt && tmpEntry.size > lt) tmpEntry = undefined
           } else if (where.size_lt && !where.size_gt) {
             if (tmpEntry.size > lt) tmpEntry = undefined
@@ -61,7 +71,17 @@ const filterEntries = (entries: any[], where?: Maybe<WhereInput>): any[] => {
 
         // Name
         if (where.name_contains) {
-          if (!tmpEntry?.name.toLowerCase().includes(where.name_contains)) tmpEntry = undefined
+          // console.log(where.name_contains);
+          if (!tmpEntry?.name.toLowerCase().includes(where.name_contains.toLowerCase())) tmpEntry = undefined
+        }
+
+        // Modifed After
+        if (where.modified_after) {
+          debugger
+          console.log('modified_after', tmpEntry?.isFile)
+          if (tmpEntry?.isFile) {
+            if (new Date(tmpEntry.lastModified) < new Date(where.modified_after)) tmpEntry = undefined
+          }
         }
 
         return tmpEntry ? entry : undefined
@@ -119,7 +139,7 @@ const resolvers: Resolvers = {
         ? [mapOutput(result, pathSegments)]
         : result.entries.map(e => mapOutput(e, pathSegments));
 
-      const filteredEntries = filterEntries(entries as any, where)
+      const filteredEntries = filterEntries(entries as any, where);
 
       return {
         entries: slicePage(filteredEntries, page),

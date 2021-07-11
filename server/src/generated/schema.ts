@@ -1,6 +1,8 @@
 import { GraphQLResolveInfo } from 'graphql';
 export type Maybe<T> = T | null;
-export type Exact<T extends { [key: string]: any }> = { [K in keyof T]: T[K] };
+export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
+export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
+export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = { [X in Exclude<keyof T, K>]?: T[X] } & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
@@ -10,6 +12,39 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
+};
+
+export type Directory = {
+  __typename?: 'Directory';
+  id: Scalars['String'];
+  path: Scalars['String'];
+  name: Scalars['String'];
+};
+
+export type Entry = File | Directory;
+
+export type File = {
+  __typename?: 'File';
+  id: Scalars['String'];
+  path: Scalars['String'];
+  name: Scalars['String'];
+  size: Scalars['Int'];
+  lastModified: Scalars['String'];
+};
+
+export type ListEntriesResult = {
+  __typename?: 'ListEntriesResult';
+  pagination: Pagination;
+  entries: Array<Maybe<Entry>>;
+};
+
+export type Pagination = {
+  __typename?: 'Pagination';
+  page: Scalars['Int'];
+  pageCount: Scalars['Int'];
+  prevPage?: Maybe<Scalars['Int']>;
+  nextPage?: Maybe<Scalars['Int']>;
+  totalRows?: Maybe<Scalars['Int']>;
 };
 
 export type Query = {
@@ -29,40 +64,8 @@ export type WhereInput = {
   size_lt?: Maybe<Scalars['Int']>;
   name_contains?: Maybe<Scalars['String']>;
   type_eq?: Maybe<Scalars['String']>;
+  modified_after?: Maybe<Scalars['String']>;
 };
-
-export type Pagination = {
-  __typename?: 'Pagination';
-  page: Scalars['Int'];
-  pageCount: Scalars['Int'];
-  prevPage?: Maybe<Scalars['Int']>;
-  nextPage?: Maybe<Scalars['Int']>;
-  totalRows?: Maybe<Scalars['Int']>;
-};
-
-export type ListEntriesResult = {
-  __typename?: 'ListEntriesResult';
-  pagination: Pagination;
-  entries: Array<Maybe<Entry>>;
-};
-
-export type File = {
-  __typename?: 'File';
-  id: Scalars['String'];
-  path: Scalars['String'];
-  name: Scalars['String'];
-  size: Scalars['Int'];
-  lastModified: Scalars['String'];
-};
-
-export type Directory = {
-  __typename?: 'Directory';
-  id: Scalars['String'];
-  path: Scalars['String'];
-  name: Scalars['String'];
-};
-
-export type Entry = File | Directory;
 
 
 
@@ -128,7 +131,7 @@ export type TypeResolveFn<TTypes, TParent = {}, TContext = {}> = (
   info: GraphQLResolveInfo
 ) => Maybe<TTypes> | Promise<Maybe<TTypes>>;
 
-export type IsTypeOfResolverFn<T = {}> = (obj: T, info: GraphQLResolveInfo) => boolean | Promise<boolean>;
+export type IsTypeOfResolverFn<T = {}, TContext = {}> = (obj: T, context: TContext, info: GraphQLResolveInfo) => boolean | Promise<boolean>;
 
 export type NextResolverFn<T> = () => Promise<T>;
 
@@ -142,49 +145,41 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 
 /** Mapping between all available schema types and the resolvers types */
 export type ResolversTypes = {
-  Query: ResolverTypeWrapper<{}>;
-  String: ResolverTypeWrapper<Scalars['String']>;
-  Int: ResolverTypeWrapper<Scalars['Int']>;
-  WhereInput: WhereInput;
-  Pagination: ResolverTypeWrapper<Pagination>;
-  ListEntriesResult: ResolverTypeWrapper<Omit<ListEntriesResult, 'entries'> & { entries: Array<Maybe<ResolversTypes['Entry']>> }>;
-  File: ResolverTypeWrapper<File>;
   Directory: ResolverTypeWrapper<Directory>;
+  String: ResolverTypeWrapper<Scalars['String']>;
   Entry: ResolversTypes['File'] | ResolversTypes['Directory'];
+  File: ResolverTypeWrapper<File>;
+  Int: ResolverTypeWrapper<Scalars['Int']>;
+  ListEntriesResult: ResolverTypeWrapper<Omit<ListEntriesResult, 'entries'> & { entries: Array<Maybe<ResolversTypes['Entry']>> }>;
+  Pagination: ResolverTypeWrapper<Pagination>;
+  Query: ResolverTypeWrapper<{}>;
+  WhereInput: WhereInput;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']>;
 };
 
 /** Mapping between all available schema types and the resolvers parents */
 export type ResolversParentTypes = {
-  Query: {};
-  String: Scalars['String'];
-  Int: Scalars['Int'];
-  WhereInput: WhereInput;
-  Pagination: Pagination;
-  ListEntriesResult: Omit<ListEntriesResult, 'entries'> & { entries: Array<Maybe<ResolversParentTypes['Entry']>> };
-  File: File;
   Directory: Directory;
+  String: Scalars['String'];
   Entry: ResolversParentTypes['File'] | ResolversParentTypes['Directory'];
+  File: File;
+  Int: Scalars['Int'];
+  ListEntriesResult: Omit<ListEntriesResult, 'entries'> & { entries: Array<Maybe<ResolversParentTypes['Entry']>> };
+  Pagination: Pagination;
+  Query: {};
+  WhereInput: WhereInput;
   Boolean: Scalars['Boolean'];
 };
 
-export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
-  listEntries?: Resolver<Maybe<ResolversTypes['ListEntriesResult']>, ParentType, ContextType, RequireFields<QueryListEntriesArgs, 'path'>>;
+export type DirectoryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Directory'] = ResolversParentTypes['Directory']> = {
+  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type PaginationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Pagination'] = ResolversParentTypes['Pagination']> = {
-  page?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  pageCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  prevPage?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  nextPage?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  totalRows?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType>;
-};
-
-export type ListEntriesResultResolvers<ContextType = any, ParentType extends ResolversParentTypes['ListEntriesResult'] = ResolversParentTypes['ListEntriesResult']> = {
-  pagination?: Resolver<ResolversTypes['Pagination'], ParentType, ContextType>;
-  entries?: Resolver<Array<Maybe<ResolversTypes['Entry']>>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType>;
+export type EntryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Entry'] = ResolversParentTypes['Entry']> = {
+  __resolveType: TypeResolveFn<'File' | 'Directory', ParentType, ContextType>;
 };
 
 export type FileResolvers<ContextType = any, ParentType extends ResolversParentTypes['File'] = ResolversParentTypes['File']> = {
@@ -193,27 +188,35 @@ export type FileResolvers<ContextType = any, ParentType extends ResolversParentT
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   size?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   lastModified?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type DirectoryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Directory'] = ResolversParentTypes['Directory']> = {
-  id?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType>;
+export type ListEntriesResultResolvers<ContextType = any, ParentType extends ResolversParentTypes['ListEntriesResult'] = ResolversParentTypes['ListEntriesResult']> = {
+  pagination?: Resolver<ResolversTypes['Pagination'], ParentType, ContextType>;
+  entries?: Resolver<Array<Maybe<ResolversTypes['Entry']>>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
-export type EntryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Entry'] = ResolversParentTypes['Entry']> = {
-  __resolveType: TypeResolveFn<'File' | 'Directory', ParentType, ContextType>;
+export type PaginationResolvers<ContextType = any, ParentType extends ResolversParentTypes['Pagination'] = ResolversParentTypes['Pagination']> = {
+  page?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  pageCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  prevPage?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  nextPage?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  totalRows?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+};
+
+export type QueryResolvers<ContextType = any, ParentType extends ResolversParentTypes['Query'] = ResolversParentTypes['Query']> = {
+  listEntries?: Resolver<Maybe<ResolversTypes['ListEntriesResult']>, ParentType, ContextType, RequireFields<QueryListEntriesArgs, 'path'>>;
 };
 
 export type Resolvers<ContextType = any> = {
-  Query?: QueryResolvers<ContextType>;
-  Pagination?: PaginationResolvers<ContextType>;
-  ListEntriesResult?: ListEntriesResultResolvers<ContextType>;
-  File?: FileResolvers<ContextType>;
   Directory?: DirectoryResolvers<ContextType>;
-  Entry?: EntryResolvers;
+  Entry?: EntryResolvers<ContextType>;
+  File?: FileResolvers<ContextType>;
+  ListEntriesResult?: ListEntriesResultResolvers<ContextType>;
+  Pagination?: PaginationResolvers<ContextType>;
+  Query?: QueryResolvers<ContextType>;
 };
 
 
