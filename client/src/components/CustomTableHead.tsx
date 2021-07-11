@@ -16,8 +16,7 @@ const headCells: HeadCellType[] = [
   { id: 'path', alignDirection: 'left', label: 'Path' },
   { id: 'name', alignDirection: 'left', label: 'Name' },
   { id: '__typename', alignDirection: 'left', label: 'Type' }, //@ts-ignore
-  { id: 'size', alignDirection: 'right', label: 'Size' }, //@ts-ignore
-  { id: 'lastModified', alignDirection: 'left', label: 'Last Modified' }
+  { id: 'size', alignDirection: 'right', label: 'Size' }
 ];
 
 type CustomTableHeadProps = {
@@ -35,7 +34,7 @@ const CustomTableHead: FunctionComponent<CustomTableHeadProps> = ({ sortField, s
     <TableHead>
       <TableRow>
         {headCells.map((headCell): JSX.Element => (
-          <TableCell align={headCell.alignDirection}>
+          <TableCell key={headCell.id} align={headCell.alignDirection}>
             <TableSortLabel
               active={sortField === headCell.id}
               onClick={createSortHandler(headCell.id)}
@@ -45,6 +44,9 @@ const CustomTableHead: FunctionComponent<CustomTableHeadProps> = ({ sortField, s
             </TableSortLabel>
           </TableCell>
         ))}
+        <TableCell align="left">
+          Last Modified
+        </TableCell>
       </TableRow>
     </TableHead>
   );

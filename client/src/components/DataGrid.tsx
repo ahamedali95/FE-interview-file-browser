@@ -152,12 +152,17 @@ const DataGrid: FunctionComponent = () => {
     dispatch({ type: "RESET" });
   }, [ dispatch ]);
 
+
+  //I have worked with data visualization tools like ag-Grid a lot. And sorting and filtering operations
+  //are automatically handled internally by the grid. Feels good trying to implement the same type of functionality
+  //from scratch.
   const sort = (rows: ENTRY_UP[]): ENTRY_UP[] => {
     const comparator = (nameA: ENTRY_UP, nameB: ENTRY_UP, property: keyof Entry) => { //@ts-ignore
       if (nameA[property] < nameB[property]) return -1; //@ts-ignore
       if (nameA[property] > nameB[property]) return 1;
       return 0;
     };
+    // filter directories and attach it to the return result after sorting files
     const directories = rows.filter(row => row.__typename === "Directory" || row.__typename === "UP_DIR");
 
     return !sortField ?
@@ -168,7 +173,8 @@ const DataGrid: FunctionComponent = () => {
 
   const getData = (): JSX.Element | JSX.Element[] => {
     if (loading) {
-      // todo: unable to center both spinner and empty data message within table
+      // todo: unable to center both spinner and empty data message within table.
+      // Any suggestion would be helpful.
       return (
         <Box
           display="flex"
