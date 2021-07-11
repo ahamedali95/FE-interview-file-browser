@@ -52,7 +52,7 @@ const FilterMenu: FunctionComponent<FilterMenuProps> = ({ isDataFetchInProgress,
           <FormControl className={classes.formControl}>
             <InputLabel shrink>Type</InputLabel>
             <Select
-              value={state.type_eq}
+              value={state.type_eq ?? ''}
               onChange={(e: ChangeEvent<{ name?: string | undefined; value: unknown; }>) => onChange('type_eq', e.target.value)}
             >
               <MenuItem value="File">File</MenuItem>

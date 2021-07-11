@@ -53,14 +53,6 @@ const filterEntries = (entries: any[], where?: Maybe<WhereInput>): any[] => {
         // Size
         if (tmpEntry?.isFile) {
           if (where.size_lt && where.size_gt) {
-            console.log("gt", gt)
-            console.log("lt", lt)
-            console.log(tmpEntry.size)
-            console.log(tmpEntry.size < gt && tmpEntry.size > lt)
-
-            // size = 1;
-            // gt = 3 file size has to be less than this
-            // lt = 0 file size has to be greater than this
             if (tmpEntry.size < gt && tmpEntry.size > lt) tmpEntry = undefined
           } else if (where.size_lt && !where.size_gt) {
             if (tmpEntry.size > lt) tmpEntry = undefined
@@ -71,14 +63,11 @@ const filterEntries = (entries: any[], where?: Maybe<WhereInput>): any[] => {
 
         // Name
         if (where.name_contains) {
-          // console.log(where.name_contains);
           if (!tmpEntry?.name.toLowerCase().includes(where.name_contains.toLowerCase())) tmpEntry = undefined
         }
 
         // Modifed After
         if (where.modified_after) {
-          debugger
-          console.log('modified_after', tmpEntry?.isFile)
           if (tmpEntry?.isFile) {
             if (new Date(tmpEntry.lastModified) < new Date(where.modified_after)) tmpEntry = undefined
           }
