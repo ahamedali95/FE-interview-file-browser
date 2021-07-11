@@ -32,7 +32,6 @@ const useFilterMenuStyles: CallableFunction = makeStyles((theme: Theme) => ({
 
 const FilterMenu: FunctionComponent<FilterMenuProps> = ({ isDataFetchInProgress, onFilterClick, onChange, onClearFilterClick, state }) => {
   const classes = useFilterMenuStyles();
-  console.log("rendering")
 
   //note: some fields cannot be reset with null value so I have provided an empty string
   //It would be super nice if we have clearable option for the mui fields

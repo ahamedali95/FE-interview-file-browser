@@ -1,14 +1,14 @@
-import './wdyr';
+import "./wdyr";
 
-import React from 'react';
-import ReactDOM from 'react-dom';
-import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
-import './styles/index.css';
-import App from './components/App';
-import * as serviceWorker from './serviceWorker';
+import React from "react";
+import ReactDOM from "react-dom";
+import { ApolloClient, InMemoryCache, ApolloProvider } from "@apollo/client";
+import "./styles/index.css";
+import App from "./components/App";
+import * as serviceWorker from "./serviceWorker";
 
 const client = new ApolloClient({
-  uri: 'http://localhost:4000',
+  uri: "http://localhost:4000",
   cache: new InMemoryCache()
 });
 
@@ -18,7 +18,7 @@ ReactDOM.render(
       <App />
     </ApolloProvider>
   </React.StrictMode>,
-  document.getElementById('root')
+  document.getElementById("root")
 );
 
 // If you want your app to work offline and load faster, you can change

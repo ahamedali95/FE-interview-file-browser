@@ -13,7 +13,6 @@ import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
 import IconButton from "@material-ui/core/IconButton";
 import TableContainer from "@material-ui/core/TableContainer";
-import TableHead from "@material-ui/core/TableHead";
 import TablePagination from "@material-ui/core/TablePagination";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import TableRow from "@material-ui/core/TableRow";
@@ -27,10 +26,13 @@ import SubdirectoryArrowRightIcon from "@material-ui/icons/SubdirectoryArrowRigh
 
 import Alert from "@material-ui/lab/Alert";
 
-import { useListEntriesLazyQuery } from "../generated-api";
-import type { ListEntriesQueryVariables, WhereInput} from "../generated-api";
+import {useListEntriesLazyQuery} from "../generated-api";
+import type { File, Entry, ListEntriesQueryVariables, WhereInput} from "../generated-api";
 import FormatUtil from "../util/FormatUtil";
 import FilterMenu from "./FilterMenu";
+import CustomTableHead from "./CustomTableHead";
+import {filterReducer} from "../reducers";
+import {initialState as filterInitialState} from "../reducers/filterReducer";
 
 const useStyles: CallableFunction = makeStyles(() => ({
   table: {
@@ -45,53 +47,21 @@ const useStyles: CallableFunction = makeStyles(() => ({
   }
 }));
 
-const initialState: WhereInput = {
-  size_gt: null,
-  size_lt: null,
-  name_contains: null,
-  type_eq: null,
-  modified_after: null
+type UP = {
+  __typename?: "UP_DIR";
+  id: string;
+  path: string;
+  name: string;
 };
 
-type ActionWithPayload = {
-  type: string;
-  property: string;
-  value: any;
-};
-
-type ActionWithoutPayload = {
-  type: string;
-};
-
-type Action = ActionWithPayload | ActionWithoutPayload;
-
-// From my experience, one improvement I suggest we make is build a genericReducer
-// that may be used throughout our application wherever we have forms. This would allow us
-// to easily manage updates to JSON blobs which may be persisted later. Moreover,
-// this generic reducer may also take in property validators that validates property values.
-// i.e., is this field valid? did the user enter a valid year? etc... Then
-// we show an error accordingly at field level.
-const reducer = (state: WhereInput, action: Action) => {
-  switch (action.type) {
-    case('UPDATE_PROPERTY'): {
-      const $action = action as ActionWithPayload;
-
-      return {
-        ...state,
-        [$action.property]: $action.value
-      };
-    }
-    case 'RESET':
-      return initialState;
-    default:
-      return state;
-  }
-};
+type ENTRY_UP = Entry | UP;
 
 const DataGrid: FunctionComponent = () => {
   const classes = useStyles();
   const bytesPerKB = 1_000;
-  const [ state, dispatch ] = useReducer(reducer, initialState, undefined);
+  const [ state, dispatch ] = useReducer(filterReducer, filterInitialState, undefined);
+  const [ sortType, setSortType ] = useState<"desc" | "asc" | undefined>(undefined);
+  const [ sortField, setSortField ] = useState<keyof Entry | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [currentPath, setCurrentPath] = useState("/");
   const [history, updateHistory] = useState<{ id: string, path: string }[]>(
@@ -113,7 +83,7 @@ const DataGrid: FunctionComponent = () => {
   // to trigger the filtering task.
   const [ fetchEntries, { data, loading, error } ] = useListEntriesLazyQuery({});
 
-  const getPayload = useMemo((): Record<"variables", ListEntriesQueryVariables> => {
+  const getPayload = (): Record<"variables", ListEntriesQueryVariables> => {
     return {
       variables: {
         path: currentPath,
@@ -125,12 +95,12 @@ const DataGrid: FunctionComponent = () => {
         }
       }
     };
-  }, [ currentPath, page, state ]);
+  };
 
   useEffect((): void => {
     // When we switch between current path/pages, the previous filters get automatically applied
     // to our query.
-    fetchEntries(getPayload);
+    fetchEntries(getPayload());
   }, [ currentPath, page ]);
 
   useEffect((): void => {
@@ -171,16 +141,30 @@ const DataGrid: FunctionComponent = () => {
   };
 
   const handleFilterClick = useCallback((): void => {
-    fetchEntries(getPayload);
+    fetchEntries(getPayload());
   }, [ currentPath, page, state ]);
 
   const handleChange = useCallback((property: keyof WhereInput, value: any): void => {
-    dispatch({ type: 'UPDATE_PROPERTY', property, value });
+    dispatch({ type: "UPDATE_PROPERTY", property, value });
   }, [ dispatch ]);
 
   const handleClearFilterClick = useCallback((): void => {
-    dispatch({ type: 'RESET' });
+    dispatch({ type: "RESET" });
   }, [ dispatch ]);
+
+  const sort = (rows: ENTRY_UP[]): ENTRY_UP[] => {
+    const comparator = (nameA: ENTRY_UP, nameB: ENTRY_UP, property: keyof Entry) => { //@ts-ignore
+      if (nameA[property] < nameB[property]) return -1; //@ts-ignore
+      if (nameA[property] > nameB[property]) return 1;
+      return 0;
+    };
+    const directories = rows.filter(row => row.__typename === "Directory" || row.__typename === "UP_DIR");
+
+    return !sortField ?
+      rows
+      :
+      [ ...directories, ...rows.slice(directories.length).sort((a: ENTRY_UP, b: ENTRY_UP) => sortType === "asc" ? comparator(a, b, sortField) : -comparator(a, b, sortField)) ];
+  };
 
   const getData = (): JSX.Element | JSX.Element[] => {
     if (loading) {
@@ -208,8 +192,10 @@ const DataGrid: FunctionComponent = () => {
         </Box>
       );
     } else {
-      return rows.map(({path, __typename, name, size, id, lastModified}, index): JSX.Element => {
-        const isUpDir = __typename === "UP_DIR"
+      //@ts-ignore
+      return sort(rows).map(({path, __typename, name, size, id, lastModified }, index: number): JSX.Element => {
+        const isUpDir = __typename === "UP_DIR";
+
         return (
           <TableRow className={index % 2 === 0 ? classes.evenRow : ""} key={id}>
             <TableCell component="th" scope="row">
@@ -217,46 +203,47 @@ const DataGrid: FunctionComponent = () => {
                 color="primary"
                 disabled={__typename === "File"}
                 startIcon={isUpDir
-                  ? (<MoreHorizIcon/>)
-                  : (__typename === "File" ? null : <SubdirectoryArrowRightIcon/>)
+                  ? (<MoreHorizIcon />)
+                  : (__typename === "File" ? null : <SubdirectoryArrowRightIcon />)
                 }
                 onClick={() => {
-                  updateHistory((h) => {
-                    if (isUpDir && h.length > 1) {
-                      setPage(1)
-                      return [...h.splice(0, h.length - 1)]
-                    } else {
-                      return ([...h, {id: path, path}])
-                    }
-                  })
+                  const h = history;
+
+                  if (isUpDir && h.length > 1) {
+                    setPage(1);
+                    updateHistory([...h.splice(0, h.length - 1)])
+                  } else {
+                    updateHistory([...h, { id: path, path }])
+                  }
                 }}
               >
                 {!isUpDir ? path : ""}
               </Button>
             </TableCell>
-            <TableCell align="right">
+            <TableCell align="left">
               <>
                 <span>{isUpDir ? "_" : name}</span>
                 {
                   // Users may want to inspect the file by downloading them so provided the download option
                   // Ideally, clicking the download option will make a call to the backend to retrieve the file blob
-                  // such that it can be converted to a readable file.
+                  // such that it can be converted to a readable file. This will use a rest service instead of graphql.
+                  // We may also give a delete option at row level to delete the file.
                   __typename === "File" &&
-                  <a
-                    download={name}
-                    href="/path/to/image"
-                  >
-                    <Box
-                      ml={1}
-                      display="inline"
+                    <a
+                      download={name}
+                      href="/path/to/image"
                     >
-                      <IconButton><GetAppRoundedIcon/></IconButton>
-                    </Box>
-                  </a>
+                      <Box
+                        ml={1}
+                        display="inline"
+                      >
+                        <IconButton><GetAppRoundedIcon/></IconButton>
+                      </Box>
+                    </a>
                 }
               </>
             </TableCell>
-            <TableCell align="right">{isUpDir ? "_" : __typename}</TableCell>
+            <TableCell align="left">{isUpDir ? "_" : __typename}</TableCell>
             <TableCell align="right">
               {
                 isUpDir ?
@@ -269,7 +256,7 @@ const DataGrid: FunctionComponent = () => {
                     size
               }
             </TableCell>
-            <TableCell align="right">
+            <TableCell align="left">
               {
                 isUpDir ?
                   "_"
@@ -286,7 +273,10 @@ const DataGrid: FunctionComponent = () => {
     }
   };
 
-  console.log(state)
+  const handleRequestSort = useCallback((property: keyof Entry) => {
+    setSortType(sortType === "asc" ? "desc" : "asc");
+    setSortField(property);
+  }, [ sortType ]);
 
   return (
     <>
@@ -316,15 +306,11 @@ const DataGrid: FunctionComponent = () => {
             <Box mt={3} />
             <TableContainer>
               <Table className={classes.table} size="small" aria-label="a dense table">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Path</TableCell>
-                    <TableCell align="right">Name</TableCell>
-                    <TableCell align="right">Type</TableCell>
-                    <TableCell align="right">Size</TableCell>
-                    <TableCell align="right">Last Modified</TableCell>
-                  </TableRow>
-                </TableHead>
+                <CustomTableHead
+                  sortType={sortType}
+                  sortField={sortField}
+                  onRequestSort={handleRequestSort}
+                />
                 <TableBody>
                   {getData()}
                 </TableBody>
