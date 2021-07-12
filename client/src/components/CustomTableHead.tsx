@@ -1,5 +1,5 @@
 import React, {FunctionComponent, memo} from 'react';
-import {TableSortLabel} from "@material-ui/core";
+import {makeStyles, TableSortLabel} from "@material-ui/core";
 import TableCell from "@material-ui/core/TableCell";
 import TableRow from "@material-ui/core/TableRow";
 import TableHead from "@material-ui/core/TableHead";
@@ -25,7 +25,15 @@ type CustomTableHeadProps = {
   onRequestSort: (property: keyof Entry) => unknown;
 };
 
+const useCustomTableHeadStyles: CallableFunction = makeStyles(() => ({
+  columnName: {
+    fontSize: '20px',
+    fontWeight: 'lighter'
+  }
+}));
+
 const CustomTableHead: FunctionComponent<CustomTableHeadProps> = ({ sortField, sortType, onRequestSort }) => {
+  const classes = useCustomTableHeadStyles();
   const createSortHandler = (property: keyof Entry) => () => {
     onRequestSort(property);
   };
@@ -34,7 +42,11 @@ const CustomTableHead: FunctionComponent<CustomTableHeadProps> = ({ sortField, s
     <TableHead>
       <TableRow>
         {headCells.map((headCell): JSX.Element => (
-          <TableCell key={headCell.id} align={headCell.alignDirection}>
+          <TableCell
+            className={classes.columnName}
+            key={headCell.id}
+            align={headCell.alignDirection}
+          >
             <TableSortLabel
               active={sortField === headCell.id}
               onClick={createSortHandler(headCell.id)}
@@ -44,7 +56,10 @@ const CustomTableHead: FunctionComponent<CustomTableHeadProps> = ({ sortField, s
             </TableSortLabel>
           </TableCell>
         ))}
-        <TableCell align="left">
+        <TableCell
+          align="left"
+          className={classes.columnName}
+        >
           Last Modified
         </TableCell>
       </TableRow>
